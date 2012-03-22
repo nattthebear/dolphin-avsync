@@ -168,13 +168,13 @@ void AVIDump::AddFrame(char *data)
 	/*
 	static std::FILE *f = NULL;
 	if (!f)
-		f = std::fopen ("D:\\encodes\\dolphin_syncout_v.txt", "w");
+		f = std::fopen ("dolphin_syncout_v.txt", "w");
 	if (f)
 		std::fprintf (f, "%i,1\n", GetTickCount ());
 	*/
 	static std::FILE *f2 = NULL;
 	if (!f2)
-		f2 = std::fopen ("D:\\encodes\\dolphin_syncout_v2.txt", "w");
+		f2 = std::fopen ("dolphin_syncout_v2.txt", "w");
 	if (f2)
 		std::fprintf (f2, "%I64i\n", CoreTiming::GetTicks ());
 	
