@@ -100,10 +100,24 @@ void WaveFileWriter::Write4(const char *ptr)
 	file.WriteBytes(ptr, 4);
 }
 
+// DUMP HACK
+//#include <windows.h>
+
 void WaveFileWriter::AddStereoSamples(const short *sample_data, int count)
 {
 	if (!file)
 		PanicAlertT("WaveFileWriter - file not open.");
+	// DUMP HACK
+	/*
+	static FILE *f = NULL;
+	if (!f)
+		f = fopen ("D:\\encodes\\dolphin_syncout_a1.txt", "w");
+	if (f)
+		fprintf (f, "%i,%i\n", GetTickCount (), count);
+	*/
+
+
+
 	if (skip_silence) {
 		bool all_zero = true;
 		for (int i = 0; i < count * 2; i++)
@@ -118,6 +132,15 @@ void WaveFileWriter::AddStereoSamplesBE(const short *sample_data, int count)
 {
 	if (!file)
 		PanicAlertT("WaveFileWriter - file not open.");
+	// DUMP HACK
+	/*
+	static FILE *f = NULL;
+	if (!f)
+		f = fopen ("D:\\encodes\\dolphin_syncout_a2.txt", "w");
+	if (f)
+		fprintf (f, "%i,%i\n", GetTickCount (), count);
+	*/
+
 
 	if (count > BUF_SIZE * 2)
 		PanicAlert("WaveFileWriter - buffer too small (count = %i).", count);

@@ -157,17 +157,74 @@ void AVIDump::Stop()
 	NOTICE_LOG(VIDEO, "Stop");
 }
 
+// DUMP HACK
+#include "CoreTiming.h"
+#include "HW\SystemTimers.h"
+
 void AVIDump::AddFrame(char *data)
 {
-	AVIStreamWrite(m_streamCompressed, ++m_frameCount, 1, (LPVOID) data, m_bitmap.biSizeImage, AVIIF_KEYFRAME, NULL, &m_byteBuffer);
-	m_totalBytes += m_byteBuffer;
-	// Close the recording if the file is more than 2gb
-	// VfW can't properly save files over 2gb in size, but can keep writing to them up to 4gb.
-	if (m_totalBytes >= 2000000000)
+	// DUMP HACK
+	
+	/*
+	static std::FILE *f = NULL;
+	if (!f)
+		f = std::fopen ("D:\\encodes\\dolphin_syncout_v.txt", "w");
+	if (f)
+		std::fprintf (f, "%i,1\n", GetTickCount ());
+	*/
+	static std::FILE *f2 = NULL;
+	if (!f2)
+		f2 = std::fopen ("D:\\encodes\\dolphin_syncout_v2.txt", "w");
+	if (f2)
+		std::fprintf (f2, "%I64i\n", CoreTiming::GetTicks ());
+	
+
+	static u64 then = (u64) (-1);
+
+	u64 now = CoreTiming::GetTicks ();
+
+	// one of the values we need (linecount) doesn't appear to be publicly exposed, so we guess it
+	u64 tpvi = VideoInterface::GetTicksPerLine ();
+	switch (tpvi)
 	{
-		CloseFile();
-		m_fileCount++;
-		CreateFile();
+		case 15428: // ntsc gc
+		case 23142: // ntsc wii
+			tpvi *= 525;
+			break;
+		case 12960: // pal60 gc
+		case 19440: // pal60 wii
+		case 15552: // pal50 gc
+		case 23328: // pal50 wii
+			tpvi *= 625;
+			break;
+		default: // huh?
+			tpvi *= 525;
+			break;
+	}
+
+	int ndup;
+	if (then > now)
+		ndup = 1;
+	else
+		ndup = (now - then + tpvi / 2) / tpvi; // rounding
+	if (!ndup) // always dump at least once
+		ndup = 1;
+
+	then = now; // "soon"
+
+	// dump the frame as many times as nessecary
+	while (ndup--)
+	{
+		AVIStreamWrite(m_streamCompressed, ++m_frameCount, 1, (LPVOID) data, m_bitmap.biSizeImage, AVIIF_KEYFRAME, NULL, &m_byteBuffer);
+		m_totalBytes += m_byteBuffer;
+		// Close the recording if the file is more than 2gb
+		// VfW can't properly save files over 2gb in size, but can keep writing to them up to 4gb.
+		if (m_totalBytes >= 2000000000)
+		{
+			CloseFile();
+			m_fileCount++;
+			CreateFile();
+		}
 	}
 }
 
