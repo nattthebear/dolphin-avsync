@@ -50,6 +50,7 @@
 
 #include "AudioDumper.h"
 #include "AudioCommon.h"
+#include "AVIDump.h"
 
 namespace DSP
 {
@@ -700,6 +701,8 @@ void UpdateAudioDMA()
 			unsigned numsamples = 8*g_audioDMA.AudioDMAControl.NumBlocks;
 			if (ac_Config.m_DumpAudio)
 				HackDump->dumpsamplesBE (dsp_emulator->DSP_PeekAIBuffer (g_audioDMA.SourceAddress, numsamples), numsamples, oldrate);
+			if (ac_Config.m_DumpAudioToAVI)
+				AVIDump::AddSoundBE (dsp_emulator->DSP_PeekAIBuffer (g_audioDMA.SourceAddress, numsamples), numsamples, oldrate);
 			dsp_emulator->DSP_SendAIBuffer(g_audioDMA.SourceAddress, numsamples);
 			GenerateDSPInterrupt(DSP::INT_AID);
 			g_audioDMA.BlocksLeft = g_audioDMA.AudioDMAControl.NumBlocks;
@@ -711,6 +714,8 @@ void UpdateAudioDMA()
 		const short blank[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 		if (ac_Config.m_DumpAudio)
 			HackDump->dumpsamples (blank, 8, oldrate);
+		if (ac_Config.m_DumpAudioToAVI)
+			AVIDump::AddSound (blank, 8, oldrate);
 		// Send silence. Yeah, it's a bit of a waste to sample rate convert
 		// silence.  or hm. Maybe we shouldn't do this :)
 		// dsp->DSP_SendAIBuffer(0, AudioInterface::GetDSPSampleRate());

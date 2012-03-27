@@ -23,6 +23,8 @@
 #include "HW/VideoInterface.h" //for TargetRefreshRate
 #include "VideoConfig.h"
 
+#include "..\..\AudioCommon\Src\AudioCommon.h" // for m_DumpAudioToAVI
+
 #ifdef _WIN32
 
 #include "tchar.h"
@@ -44,9 +46,13 @@ PAVIFILE m_file;
 int m_width;
 int m_height;
 int m_fileCount;
+int m_samplesSound;
 PAVISTREAM m_stream;
 PAVISTREAM m_streamCompressed;
+PAVISTREAM m_streamSound;
+
 AVISTREAMINFO m_header;
+AVISTREAMINFO m_soundHeader;
 AVICOMPRESSOPTIONS m_options;
 AVICOMPRESSOPTIONS *m_arrayOptions[1];
 BITMAPINFOHEADER m_bitmap;
@@ -74,6 +80,7 @@ bool AVIDump::CreateFile()
 {
 	m_totalBytes = 0;
 	m_frameCount = 0;
+	m_samplesSound = 0;
 	char movie_file_name[255];
 	sprintf(movie_file_name, "%sframedump%d.avi", File::GetUserPath(D_DUMPFRAMES_IDX).c_str(), m_fileCount);
 	// Create path
@@ -132,11 +139,47 @@ bool AVIDump::CreateFile()
 		return false;
 	}
 
+	if (ac_Config.m_DumpAudioToAVI)
+	{
+		WAVEFORMATEX wfex;
+		wfex.cbSize = sizeof (wfex);
+		wfex.nAvgBytesPerSec = 48000 * 4;
+		wfex.nBlockAlign = 4;
+		wfex.nChannels = 2;
+		wfex.nSamplesPerSec = 48000;
+		wfex.wBitsPerSample = 16;
+		wfex.wFormatTag = WAVE_FORMAT_PCM;
+
+		ZeroMemory (&m_soundHeader, sizeof (AVISTREAMINFO));
+        m_soundHeader.fccType         = streamtypeAUDIO;
+        m_soundHeader.dwQuality       = (DWORD)-1;
+        m_soundHeader.dwScale         = wfex.nBlockAlign;
+        m_soundHeader.dwInitialFrames = 1;
+        m_soundHeader.dwRate       = wfex.nAvgBytesPerSec;
+        m_soundHeader.dwSampleSize = wfex.nBlockAlign;
+
+		if (FAILED(AVIFileCreateStream (m_file, &m_streamSound, &m_soundHeader)))
+		{
+			NOTICE_LOG(VIDEO, "AVIFileCreateStream failed (sound)");
+			Stop();
+			return false;
+		}
+        if (FAILED(AVIStreamSetFormat(m_streamSound, 0, &wfex, sizeof(WAVEFORMATEX))))
+		{
+			NOTICE_LOG(VIDEO, "AVIStreamSetFormat failed (sound)");
+			Stop();
+			return false;
+		}
+	}
 	return true;
 }
 
 void AVIDump::CloseFile()
 {
+	// flush any leftover sound data
+	if (m_streamSound)
+		AddSoundInternal (NULL, 0);
+
 	if (timecodes)
 	{
 		std::fclose (timecodes);
@@ -152,6 +195,12 @@ void AVIDump::CloseFile()
 	{
 		AVIStreamClose(m_stream);
 		m_stream = NULL;
+	}
+
+	if (m_streamSound)
+	{
+		AVIStreamClose (m_streamSound);
+		m_streamSound = NULL;
 	}
 
 	if (m_file)
@@ -173,6 +222,115 @@ void AVIDump::Stop()
 // DUMP HACK
 #include "CoreTiming.h"
 #include "HW\SystemTimers.h"
+
+void AVIDump::AddSoundBE (const short *data, int nsamp, int rate)
+{
+	if (!m_streamSound)
+		return;
+
+	static short *buff = NULL;
+	static int nsampf = 0;
+	if (nsampf < nsamp)
+	{
+		buff = (short *) realloc (buff, nsamp * 4);
+		nsampf = nsamp;
+	}
+	if (buff)
+	{
+		for (int i = 0; i < nsamp * 2; i++)
+			buff[i] = Common::swap16 (data[i]);
+		AVIDump::AddSound (buff, nsamp, rate);
+	}
+}
+
+void AVIDump::AddSoundInternal (const short *data, int nsamp)
+{
+	// each write to avi takes packet overhead.  so writing every 8 samples wastes lots of space
+	static short *buff = NULL;
+	if (!buff)
+		buff = (short *) malloc (65536 * 4);
+	if (!buff)
+		return;
+
+	static int buffpos = 0;
+
+	if (data)
+	{
+		while (nsamp)
+		{
+			while (buffpos < 65536 * 2 && nsamp)
+			{
+				buff[buffpos++] = *data++;
+				buff[buffpos++] = *data++;
+				nsamp--;
+			}
+			if (buffpos == 65536 * 2)
+			{
+				AVIStreamWrite (m_streamSound, m_samplesSound, 65536, buff, 65536 * 4, 0, NULL, &m_byteBuffer);
+				m_totalBytes += m_byteBuffer;
+				m_samplesSound += 65536;
+				buffpos = 0;
+			}
+		}
+	}
+	else if (buffpos)// data = NULL: flush
+	{
+		AVIStreamWrite (m_streamSound, m_samplesSound, buffpos / 2, buff, buffpos * 2, 0, NULL, &m_byteBuffer);
+		m_totalBytes += m_byteBuffer;
+		m_samplesSound += buffpos / 2;
+		buffpos = 0;
+	}
+
+}
+
+
+void AVIDump::AddSound (const short *data, int nsamp, int rate)
+{
+	if (!m_streamSound)
+		return;
+
+	static short *buff = NULL;
+	static int nsampf = 0;
+
+	static short old[2] = {0, 0};
+
+	// resample
+	if (rate == 32000)
+	{
+		if (nsamp % 2)
+			return;
+
+		// 2->3
+		if (nsampf < nsamp * 3 / 2)
+		{
+			buff = (short *) realloc (buff, nsamp * 3 / 2 * 4);
+			nsampf = nsamp * 3 / 2;
+		}
+		if (!buff)
+			return;
+
+		for (int i = 0; i < nsamp / 2; i++)
+		{
+			buff[6 * i + 0] = (int) data[4 * i + 0] * 2 / 3 + old[0] * 1 / 3;
+			buff[6 * i + 1] = (int) data[4 * i + 1] * 2 / 3 + old[1] * 1 / 3;
+			buff[6 * i + 2] = (int) data[4 * i + 0] * 2 / 3 + data[4 * i + 2] * 1 / 3;
+			buff[6 * i + 3] = (int) data[4 * i + 1] * 2 / 3 + data[4 * i + 3] * 1 / 3;
+			buff[6 * i + 4] = data[4 * i + 2];
+			buff[6 * i + 5] = data[4 * i + 3];
+
+			old[0] = data[4 * i + 2];
+			old[1] = data[4 * i + 3];
+		}
+
+		nsamp = nsamp * 3 / 2;
+		data = buff;
+	}
+
+	AddSoundInternal (data, nsamp);
+
+
+
+}
 
 void AVIDump::AddFrame(char *data)
 {

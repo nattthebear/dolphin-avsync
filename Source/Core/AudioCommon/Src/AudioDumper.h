@@ -14,7 +14,7 @@ private:
 	std::string basename;
 	bool checkem (int srate);
 public:
-	AudioDumper (std::string);
+	AudioDumper (std::string _basename);
 	~AudioDumper ();
 
 	void dumpsamples (const short *buff, int nsamp, int srate);
