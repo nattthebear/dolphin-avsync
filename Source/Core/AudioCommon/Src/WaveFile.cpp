@@ -52,6 +52,8 @@ bool WaveFileWriter::Start(const char *filename, unsigned int HLESampleRate)
 		return false;
 	}
 
+	audio_size = 0; // seriously?
+
 	// -----------------
 	// Write file header
 	// -----------------
