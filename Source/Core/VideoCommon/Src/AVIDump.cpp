@@ -113,6 +113,10 @@ bool AVIDump::CreateFile()
 	}
 
 	SetBitmapFormat();
+	// prep a null stored frame (CFR mode)
+	if (ac_Config.m_DumpAudioToAVI)
+		StoreFrame (NULL);
+
 	NOTICE_LOG(VIDEO, "Setting video format...");
 	if (!SetVideoFormat())
 	{
@@ -355,7 +359,10 @@ void AVIDump::StoreFrame (const void *data)
 	}
 	if (storedframe)
 	{
-		memcpy (storedframe, data, m_bitmap.biSizeImage);
+		if (data)
+			memcpy (storedframe, data, m_bitmap.biSizeImage);
+		else // pitch black frame
+			memset (storedframe, 0, m_bitmap.biSizeImage);
 	}
 
 }
