@@ -41,6 +41,7 @@
 HWND m_emuWnd;
 LONG m_byteBuffer;
 LONG m_frameCount;
+LONG m_frameCountNoSplit; // tracks across 2gig splits
 LONG m_totalBytes;
 PAVIFILE m_file;
 int m_width;
@@ -58,6 +59,7 @@ AVICOMPRESSOPTIONS *m_arrayOptions[1];
 BITMAPINFOHEADER m_bitmap;
 std::FILE *timecodes;
 
+
 bool AVIDump::Start(HWND hWnd, int w, int h)
 {
 	m_emuWnd = hWnd;
@@ -66,13 +68,15 @@ bool AVIDump::Start(HWND hWnd, int w, int h)
 	m_width = w;
 	m_height = h;
 
+	m_frameCountNoSplit = 0;
 
-
-	timecodes = std::fopen ((File::GetUserPath (D_DUMPFRAMES_IDX) + "timecodes.txt").c_str (), "w");
-	if (!timecodes)
-		return false;
-	std::fprintf (timecodes, "# timecode format v2\n");
-
+	if (!ac_Config.m_DumpAudioToAVI)
+	{
+		timecodes = std::fopen ((File::GetUserPath (D_DUMPFRAMES_IDX) + "timecodes.txt").c_str (), "w");
+		if (!timecodes)
+			return false;
+		std::fprintf (timecodes, "# timecode format v2\n");
+	}
 	return CreateFile();
 }
 
@@ -176,10 +180,6 @@ bool AVIDump::CreateFile()
 
 void AVIDump::CloseFile()
 {
-	// flush any leftover sound data
-	if (m_streamSound)
-		AddSoundInternal (NULL, 0);
-
 	if (timecodes)
 	{
 		std::fclose (timecodes);
@@ -214,6 +214,13 @@ void AVIDump::CloseFile()
 
 void AVIDump::Stop()
 {
+	// flush any leftover sound data
+	if (m_streamSound)
+		AddSoundInternal (NULL, 0);
+	// store one copy of the last video frame, CFR case
+	if (ac_Config.m_DumpAudioToAVI && m_streamCompressed)
+		AVIStreamWrite(m_streamCompressed, ++m_frameCount, 1, GetFrame (), m_bitmap.biSizeImage, AVIIF_KEYFRAME, NULL, &m_byteBuffer);
+
 	CloseFile();
 	m_fileCount = 0;
 	NOTICE_LOG(VIDEO, "Stop");
@@ -332,77 +339,53 @@ void AVIDump::AddSound (const short *data, int nsamp, int rate)
 
 }
 
-void AVIDump::AddFrame(char *data)
+// the CFR dump design doesn't let you dump until you know the NEXT timecode.
+// so we have to save a frame and always be behind
+
+void *storedframe;
+unsigned storedframesz = 0;
+
+
+void AVIDump::StoreFrame (const void *data)
 {
-	// DUMP HACK
-	
-	/*
-	static std::FILE *f = NULL;
-	if (!f)
-		f = std::fopen ("dolphin_syncout_v.txt", "w");
-	if (f)
-		std::fprintf (f, "%i,1\n", GetTickCount ());
-	*/
-
-	// write timecode
-	u64 now = CoreTiming::GetTicks ();
-
-	u64 persec = SystemTimers::GetTicksPerSecond ();
-
-
-	u64 num = now * 1000 / persec;
-
-	now -= num * (persec / 1000);
-
-	u64 den = ((now * 1000000000 + persec / 2) / persec) % 1000000;
-
-	std::fprintf (timecodes, "%I64u.%06I64u\n", num, den);
-
-
-	/*
-	static std::FILE *f2 = NULL;
-	if (!f2)
-		f2 = std::fopen ("dolphin_syncout_v2.txt", "w");
-	if (f2)
-		std::fprintf (f2, "%I64i\n", CoreTiming::GetTicks ());
-	
-
-	static u64 then = (u64) (-1);
-
-	u64 now = CoreTiming::GetTicks ();
-
-	// one of the values we need (linecount) doesn't appear to be publicly exposed, so we guess it
-	u64 tpvi = VideoInterface::GetTicksPerLine ();
-	switch (tpvi)
+	if (m_bitmap.biSizeImage > storedframesz)
 	{
-		case 15428: // ntsc gc
-		case 23142: // ntsc wii
-			tpvi *= 525;
-			break;
-		case 12960: // pal60 gc
-		case 19440: // pal60 wii
-		case 15552: // pal50 gc
-		case 23328: // pal50 wii
-			tpvi *= 625;
-			break;
-		default: // huh?
-			tpvi *= 525;
-			break;
+		storedframe = realloc (storedframe, m_bitmap.biSizeImage);
+		storedframesz = m_bitmap.biSizeImage;
+	}
+	if (storedframe)
+	{
+		memcpy (storedframe, data, m_bitmap.biSizeImage);
 	}
 
-	int ndup;
-	if (then > now)
-		ndup = 1;
-	else
-		ndup = (now - then + tpvi / 2) / tpvi; // rounding
-	if (!ndup) // always dump at least once
-		ndup = 1;
+}
 
-	then = now; // "soon"
+void *AVIDump::GetFrame (void)
+{
+	return storedframe;
+}
 
-	// dump the frame as many times as nessecary
-	while (ndup--)
-	{*/
+
+void AVIDump::AddFrame(char *data)
+{
+
+	if (!ac_Config.m_DumpAudioToAVI)
+	{
+		// write timecode
+		u64 now = CoreTiming::GetTicks ();
+
+		u64 persec = SystemTimers::GetTicksPerSecond ();
+
+
+		u64 num = now * 1000 / persec;
+
+		now -= num * (persec / 1000);
+
+		u64 den = ((now * 1000000000 + persec / 2) / persec) % 1000000;
+
+		std::fprintf (timecodes, "%I64u.%06I64u\n", num, den);
+
+
 		AVIStreamWrite(m_streamCompressed, ++m_frameCount, 1, (LPVOID) data, m_bitmap.biSizeImage, AVIIF_KEYFRAME, NULL, &m_byteBuffer);
 		m_totalBytes += m_byteBuffer;
 		// Close the recording if the file is more than 2gb
@@ -413,7 +396,64 @@ void AVIDump::AddFrame(char *data)
 			m_fileCount++;
 			CreateFile();
 		}
-	/*}*/
+		
+	}
+	else
+	{
+		static std::FILE *fff = 0;
+		
+		if (!fff)
+		{
+			fff = fopen ("cfrdbg.txt", "w");
+			fprintf (fff, "now,oneCFR,CFRstart\n");
+		}
+		
+		// no timecodes, instead dump each frame as many/few times as needed to keep sync
+
+		u64 now = CoreTiming::GetTicks ();
+		fprintf (fff, "%I64u,", now);
+
+		u64 oneCFR = SystemTimers::GetTicksPerSecond () / VideoInterface::TargetRefreshRate;
+
+		fprintf (fff, "%I64u,", oneCFR);
+
+		u64 CFRstart = oneCFR * m_frameCountNoSplit;
+
+		fprintf (fff,"%I64u\n", CFRstart);
+
+		int nplay = 0;
+
+		s64 delta = now - CFRstart;
+
+		// try really hard to place one copy of frame in stream (otherwise it's dropped)
+		if (delta > (s64) oneCFR * 3 / 10) // place if 3/10th of a frame space
+		{
+			delta -= oneCFR;
+			nplay++;
+		}
+		// try not nearly so hard to place additional copies of the frame
+		while (delta > (s64) oneCFR * 8 / 10) // place if 8/10th of a frame space
+		{
+			delta -= oneCFR;
+			nplay++;
+		}
+
+		while (nplay--)
+		{
+			m_frameCountNoSplit++;
+			AVIStreamWrite(m_streamCompressed, ++m_frameCount, 1, GetFrame (), m_bitmap.biSizeImage, AVIIF_KEYFRAME, NULL, &m_byteBuffer);
+			m_totalBytes += m_byteBuffer;
+			// Close the recording if the file is more than 2gb
+			// VfW can't properly save files over 2gb in size, but can keep writing to them up to 4gb.
+			if (m_totalBytes >= 2000000000)
+			{
+				CloseFile();
+				m_fileCount++;
+				CreateFile();
+			}
+		}
+		StoreFrame (data);
+	}
 }
 
 void AVIDump::SetBitmapFormat()

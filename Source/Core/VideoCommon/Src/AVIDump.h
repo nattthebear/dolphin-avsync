@@ -35,6 +35,9 @@ class AVIDump
 
 		static void AddSoundInternal (const short *data, int nsamp);
 
+		static void StoreFrame (const void *data);
+		static void *GetFrame (void);
+
 	public:
 #ifdef _WIN32
 		static bool Start(HWND hWnd, int w, int h);
