@@ -257,12 +257,15 @@ void AVIDump::AddSoundBE (const short *data, int nsamp, int rate)
 	}
 }
 
+
+const int soundinterleave = 48000;
+
 void AVIDump::AddSoundInternal (const short *data, int nsamp)
 {
 	// each write to avi takes packet overhead.  so writing every 8 samples wastes lots of space
 	static short *buff = NULL;
 	if (!buff)
-		buff = (short *) malloc (65536 * 4);
+		buff = (short *) malloc (soundinterleave * 4);
 	if (!buff)
 		return;
 
@@ -272,17 +275,17 @@ void AVIDump::AddSoundInternal (const short *data, int nsamp)
 	{
 		while (nsamp)
 		{
-			while (buffpos < 65536 * 2 && nsamp)
+			while (buffpos < soundinterleave * 2 && nsamp)
 			{
 				buff[buffpos++] = *data++;
 				buff[buffpos++] = *data++;
 				nsamp--;
 			}
-			if (buffpos == 65536 * 2)
+			if (buffpos == soundinterleave * 2)
 			{
-				AVIStreamWrite (m_streamSound, m_samplesSound, 65536, buff, 65536 * 4, 0, NULL, &m_byteBuffer);
+				AVIStreamWrite (m_streamSound, m_samplesSound, soundinterleave, buff, soundinterleave * 4, 0, NULL, &m_byteBuffer);
 				m_totalBytes += m_byteBuffer;
-				m_samplesSound += 65536;
+				m_samplesSound += soundinterleave;
 				buffpos = 0;
 			}
 		}
