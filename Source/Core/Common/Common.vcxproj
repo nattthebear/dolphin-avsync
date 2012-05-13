@@ -170,6 +170,7 @@
     <ClCompile Include="Src\Crypto\ec.cpp" />
     <ClCompile Include="Src\Crypto\md5.cpp" />
     <ClCompile Include="Src\Crypto\sha1.cpp" />
+    <ClCompile Include="Src\DesyncCheck.cpp" />
     <ClCompile Include="Src\ExtendedTrace.cpp" />
     <ClCompile Include="Src\FileSearch.cpp" />
     <ClCompile Include="Src\FileUtil.cpp" />
@@ -223,6 +224,7 @@
     <ClInclude Include="Src\Crypto\sha1.h" />
     <ClInclude Include="Src\Crypto\tools.h" />
     <ClInclude Include="Src\DebugInterface.h" />
+    <ClInclude Include="Src\DesyncCheck.h" />
     <ClInclude Include="Src\ExtendedTrace.h" />
     <ClInclude Include="Src\FifoQueue.h" />
     <ClInclude Include="Src\FileSearch.h" />

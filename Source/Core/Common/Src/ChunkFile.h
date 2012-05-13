@@ -75,11 +75,37 @@ public:
 		(*ptr) += size;
 	}
 
-	template<class T>
-	void Do(std::map<unsigned int, T> &x)
+	template<class Idx, class Val>
+	void Do(std::map<Idx, Val> &x)
 	{
-		// TODO
-		PanicAlert("Do(map<>) does not yet work.");
+		Idx size;
+		switch (mode) {
+		case MODE_READ:
+			x.clear();
+			Do(size);
+			for (Idx i = 0; i < size; i ++)
+			{
+				Idx tmp_index;
+				Val tmp_value;
+
+				Do(tmp_index);
+				Do(tmp_value);
+
+				x.insert(std::make_pair(tmp_index, tmp_value));
+			}
+			break;
+		case MODE_WRITE:
+		case MODE_MEASURE:
+		case MODE_VERIFY:
+			size = x.size();
+			Do(size);
+			for (std::map<Idx, Val>::iterator it = x.begin(); it != x.end(); it ++)
+			{
+				Do(it->first);
+				Do(it->second);
+			}
+			break;
+		}
 	}
 
 	void Do(std::map<unsigned int, std::string> &x)

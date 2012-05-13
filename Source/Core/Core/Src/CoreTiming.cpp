@@ -23,6 +23,7 @@
 #include "Core.h"
 #include "StringUtil.h"
 #include "VideoBackendBase.h"
+#include "DesyncCheck.h"
 
 #define MAX_SLICE_LENGTH 20000
 
@@ -457,6 +458,9 @@ void MoveEvents()
 
 void Advance()
 {	
+	DESYNCCHECK(globalTimer);
+	DESYNCCHECK(slicelength);
+	DESYNCCHECK(downcount);
 
 	MoveEvents();		
 

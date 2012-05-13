@@ -221,7 +221,8 @@ static const int DSP_MAIL_SLICE=72;
 
 void DoState(PointerWrap &p)
 {
-	if (!g_ARAM.wii_mode)
+	p.Do(dsp_slice);
+//	if (!g_ARAM.wii_mode)
 		p.DoArray(g_ARAM.ptr, g_ARAM.size);
 	p.Do(g_dspState);
 	p.Do(g_audioDMA);

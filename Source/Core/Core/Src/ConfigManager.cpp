@@ -130,6 +130,8 @@ void SConfig::SaveSettings()
 	ini.Load(File::GetUserPath(F_DOLPHINCONFIG_IDX)); // load first to not kill unknown stuff
 
 	// General
+	ini.Set("General", "UseUndoState", m_UseUndoState);
+
 	ini.Set("General", "LastFilename",	m_LastFilename);
 
 	// ISO folders
@@ -259,6 +261,8 @@ void SConfig::LoadSettings()
 
 	// General
 	{
+		ini.Get("General", "UseUndoState", &m_UseUndoState, true);
+
 		ini.Get("General", "LastFilename",	&m_LastFilename);
 
 		m_ISOFolder.clear();

@@ -35,6 +35,8 @@
 #include "HW/VideoInterface.h"
 #include "HW/SystemTimers.h"
 
+#include "DesyncCheck.h"
+
 namespace State
 {
 
@@ -145,6 +147,11 @@ void DoState(PointerWrap &p)
 	Movie::DoState(p, version<6);
 	p.DoMarker("Movie");
 
+#ifdef DESYNCCHECK_ENABLE
+	if (p.mode == PointerWrap::MODE_WRITE || PointerWrap::MODE_READ)
+		DesyncCheck::StateSaveLoadCheck(p.mode == PointerWrap::MODE_WRITE);
+#endif
+
 	// Resume the video thread
 	g_video_backend->RunLoop(true);
 }
@@ -161,6 +168,9 @@ void LoadBufferStateCallback(u64 userdata, int cyclesLate)
 	PointerWrap p(&ptr, PointerWrap::MODE_READ);
 	DoState(p);
 
+	//free current buffer
+	g_current_buffer.clear();
+
 	Core::DisplayMessage("Loaded state", 2000);
 
 	g_op_in_progress = false;
@@ -172,6 +182,10 @@ void SaveBufferStateCallback(u64 userdata, int cyclesLate)
 	PointerWrap p(&ptr, PointerWrap::MODE_MEASURE);
 
 	DoState(p);
+
+	//free current buffer
+	g_current_buffer.clear();
+
 	const size_t buffer_size = reinterpret_cast<size_t>(ptr);
 	g_current_buffer.resize(buffer_size);
 
@@ -368,11 +382,11 @@ void LoadFileStateCallback(u64 userdata, int cyclesLate)
 
 	Flush();
 
-	// Save temp buffer for undo load state
-	// TODO: this should be controlled by a user option,
-	// because it slows down every savestate load to provide an often-unused feature.
-	SaveBufferStateCallback(userdata, cyclesLate);
-	g_undo_load_buffer.swap(g_current_buffer);
+	if (SConfig::GetInstance().m_UseUndoState)
+	{
+		SaveBufferStateCallback(userdata, cyclesLate);
+		g_undo_load_buffer.swap(g_current_buffer);
+	}
 
 	std::vector<u8> buffer;
 	LoadFileStateData(g_current_filename, buffer);

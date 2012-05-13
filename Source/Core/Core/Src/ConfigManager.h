@@ -76,6 +76,8 @@ struct SConfig : NonCopyable
 	bool m_ListTaiwan;
 	bool m_ListUnknown;
 
+	bool m_UseUndoState;
+
 	SysConf* m_SYSCONF;
 
 	// save settings

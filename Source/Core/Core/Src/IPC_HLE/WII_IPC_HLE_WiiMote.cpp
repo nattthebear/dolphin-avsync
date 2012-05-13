@@ -84,7 +84,27 @@ CWII_IPC_HLE_WiiMote::CWII_IPC_HLE_WiiMote(CWII_IPC_HLE_Device_usb_oh1_57e_305* 
 
 void CWII_IPC_HLE_WiiMote::DoState(PointerWrap &p)
 {
+	//TODO: save to minimize
 	p.Do(m_ConnectionState);
+	p.Do(m_Channel);
+
+	p.Do(m_HIDControlChannel_Connected);
+	p.Do(m_HIDControlChannel_ConnectedWait);
+	p.Do(m_HIDControlChannel_Config);
+	p.Do(m_HIDControlChannel_ConfigWait);
+	p.Do(m_HIDInterruptChannel_Connected);
+	p.Do(m_HIDInterruptChannel_ConnectedWait);
+	p.Do(m_HIDInterruptChannel_Config);
+	p.Do(m_HIDInterruptChannel_ConfigWait);
+
+	p.Do(m_BD);
+	p.Do(m_ConnectionHandle);
+	p.Do(uclass);
+	p.Do(features);
+	p.Do(lmp_version);
+	p.Do(lmp_subversion);
+	p.Do(m_LinkKey);
+	p.Do(m_Name);
 }
 
 //

@@ -20,9 +20,7 @@
 #include <string>
 #include <queue>
 #include "../HW/Memmap.h"
-
-class PointerWrap;
-
+#include "ChunkFile.h"
 
 #define	FS_SUCCESS		(u32)0		// Success
 #define	FS_EACCES		(u32)-1		// Permission denied 
@@ -62,7 +60,10 @@ public:
 
 	virtual ~IWII_IPC_HLE_Device() { }
 
-	virtual void DoState(PointerWrap&) { }
+	virtual void DoState(PointerWrap& p)
+	{
+		p.Do(m_Active);
+	}
 
 	const std::string& GetDeviceName() const { return m_Name; }
     u32 GetDeviceID() const { return m_DeviceID; }

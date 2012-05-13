@@ -25,6 +25,9 @@
 #include "WII_IPC_HLE_Device_usb.h"
 #include "../ConfigManager.h"
 #include "CoreTiming.h"
+#include "DesyncCheck.h"
+
+u32 g_wiimote_to_update = 0;
 
 // The device class
 CWII_IPC_HLE_Device_usb_oh1_57e_305::CWII_IPC_HLE_Device_usb_oh1_57e_305(u32 _DeviceID, const std::string& _rDeviceName)
@@ -103,26 +106,57 @@ CWII_IPC_HLE_Device_usb_oh1_57e_305::~CWII_IPC_HLE_Device_usb_oh1_57e_305()
 
 void CWII_IPC_HLE_Device_usb_oh1_57e_305::DoState(PointerWrap &p)
 {
-/*
-  //things that do not get saved:
 
-	std::vector<CWII_IPC_HLE_WiiMote> m_WiiMotes;
+	p.Do(g_wiimote_to_update);
 
-	std::deque<SQueuedEvent> m_EventQueue;
- */
-
-	p.Do(m_CtrlSetup);
-	p.Do(m_ACLSetup);
-	p.Do(m_HCIEndpoint);
-	p.Do(m_ACLEndpoint);
-	p.Do(m_last_ticks);
-	p.DoArray(m_PacketCount,4);
-	p.Do(m_ScanEnable);
-	m_acl_pool.DoState(p);
-
-	if (p.GetMode() == PointerWrap::MODE_READ) {
-	    m_EventQueue.clear();
+	p.Do(m_Active);
+	for(int i = 0; i < 4; i++)
+	{
+		m_WiiMotes[i].DoState(p);
 	}
+	
+	p.Do(m_ControllerBD);
+	p.Do(m_ScanEnable);
+	p.Do(m_CtrlSetup);
+	p.Do(m_HCIEndpoint);
+	p.Do(m_ACLSetup);
+	p.Do(m_ACLEndpoint);
+	m_acl_pool.DoState(p);
+	p.Do(m_PacketCount);
+	p.Do(m_last_ticks);
+
+	//Do 'm_EventQueue'
+	{
+		u32 size;
+		if (p.GetMode() == PointerWrap::MODE_READ)
+		{
+			p.Do(size);
+			m_EventQueue.clear();
+			for (u32 i = 0; i < size; i ++)
+			{
+				u32 tmp_size;
+				u16 tmp_handle;
+				p.Do(tmp_size);
+				p.Do(tmp_handle);
+				SQueuedEvent tmp(tmp_size, tmp_handle);
+				p.Do(tmp.m_buffer);
+				m_EventQueue.push_back(tmp);
+			}
+		}
+		else
+		{
+			size = m_EventQueue.size();
+			p.Do(size);
+			for (u32 i = 0; i < size; i ++)
+			{
+				p.Do(m_EventQueue[i].m_size);
+				p.Do(m_EventQueue[i].m_connectionHandle);
+				p.Do(m_EventQueue[i].m_buffer);
+			}
+		}
+	}
+	p.DoMarker("CWII_IPC_HLE_Device_usb_oh1_57e_305");
+
 	if (p.GetMode() == PointerWrap::MODE_READ &&
 		SConfig::GetInstance().m_WiimoteReconnectOnLoad)
 	{
@@ -505,13 +539,12 @@ u32 CWII_IPC_HLE_Device_usb_oh1_57e_305::Update()
 
 	if (now - m_last_ticks > each_wiimote_interval)
 	{
-		static int wiimote_to_update = 0;
-		if (m_WiiMotes[wiimote_to_update].IsConnected())
+		if (m_WiiMotes[g_wiimote_to_update].IsConnected())
 		{
-			NetPlay_WiimoteUpdate(wiimote_to_update);
-			Wiimote::Update(wiimote_to_update);
+			NetPlay_WiimoteUpdate(g_wiimote_to_update);
+			Wiimote::Update(g_wiimote_to_update);
 		}
-		wiimote_to_update = (wiimote_to_update + 1) % m_WiiMotes.size();
+		g_wiimote_to_update = (g_wiimote_to_update + 1) % m_WiiMotes.size();
 		m_last_ticks = now;
 	}
 
@@ -532,6 +565,10 @@ void CWII_IPC_HLE_Device_usb_oh1_57e_305::ACLPool::WriteToEndpoint(CtrlBuffer& e
 	hci_acldata_hdr_t* pHeader = (hci_acldata_hdr_t*)Memory::GetPointer(endpoint.m_buffer);
 	pHeader->con_handle	= HCI_MK_CON_HANDLE(conn_handle, HCI_PACKET_START, HCI_POINT2POINT);
 	pHeader->length		= size;
+
+	DESYNCCHECK("ACLPool::WriteToEndpoint");
+	DESYNCCHECK(CoreTiming::GetTicks());
+	DESYNCCHECK(*this);
 
 	// Write the packet to the buffer
 	memcpy((u8*)pHeader + sizeof(hci_acldata_hdr_t), data, pHeader->length);

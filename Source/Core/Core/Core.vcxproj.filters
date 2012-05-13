@@ -535,22 +535,22 @@
     </ClCompile>
     <ClCompile Include="Src\BootManager.cpp" />
     <ClCompile Include="Src\FifoPlayer\FifoDataFile.cpp">
-      <Filter>FifoPlayer</Filter>
+      <Filter>HW %28Flipper/Hollywood%29\FifoPlayer</Filter>
     </ClCompile>
     <ClCompile Include="Src\FifoPlayer\FifoPlayer.cpp">
-      <Filter>FifoPlayer</Filter>
+      <Filter>HW %28Flipper/Hollywood%29\FifoPlayer</Filter>
     </ClCompile>
     <ClCompile Include="Src\FifoPlayer\FifoRecorder.cpp">
-      <Filter>FifoPlayer</Filter>
+      <Filter>HW %28Flipper/Hollywood%29\FifoPlayer</Filter>
     </ClCompile>
     <ClCompile Include="Src\FifoPlayer\FifoPlaybackAnalyzer.cpp">
-      <Filter>FifoPlayer</Filter>
+      <Filter>HW %28Flipper/Hollywood%29\FifoPlayer</Filter>
     </ClCompile>
     <ClCompile Include="Src\FifoPlayer\FifoRecordAnalyzer.cpp">
-      <Filter>FifoPlayer</Filter>
+      <Filter>HW %28Flipper/Hollywood%29\FifoPlayer</Filter>
     </ClCompile>
     <ClCompile Include="Src\FifoPlayer\FifoAnalyzer.cpp">
-      <Filter>FifoPlayer</Filter>
+      <Filter>HW %28Flipper/Hollywood%29\FifoPlayer</Filter>
     </ClCompile>
     <ClCompile Include="Src\Movie.cpp" />
     <ClCompile Include="Src\HW\GCMemcard.cpp">
@@ -1009,25 +1009,25 @@
     </ClInclude>
     <ClInclude Include="Src\BootManager.h" />
     <ClInclude Include="Src\FifoPlayer\FifoDataFile.h">
-      <Filter>FifoPlayer</Filter>
+      <Filter>HW %28Flipper/Hollywood%29\FifoPlayer</Filter>
     </ClInclude>
     <ClInclude Include="Src\FifoPlayer\FifoFileStruct.h">
-      <Filter>FifoPlayer</Filter>
+      <Filter>HW %28Flipper/Hollywood%29\FifoPlayer</Filter>
     </ClInclude>
     <ClInclude Include="Src\FifoPlayer\FifoPlayer.h">
-      <Filter>FifoPlayer</Filter>
+      <Filter>HW %28Flipper/Hollywood%29\FifoPlayer</Filter>
     </ClInclude>
     <ClInclude Include="Src\FifoPlayer\FifoRecorder.h">
-      <Filter>FifoPlayer</Filter>
+      <Filter>HW %28Flipper/Hollywood%29\FifoPlayer</Filter>
     </ClInclude>
     <ClInclude Include="Src\FifoPlayer\FifoPlaybackAnalyzer.h">
-      <Filter>FifoPlayer</Filter>
+      <Filter>HW %28Flipper/Hollywood%29\FifoPlayer</Filter>
     </ClInclude>
     <ClInclude Include="Src\FifoPlayer\FifoRecordAnalyzer.h">
-      <Filter>FifoPlayer</Filter>
+      <Filter>HW %28Flipper/Hollywood%29\FifoPlayer</Filter>
     </ClInclude>
     <ClInclude Include="Src\FifoPlayer\FifoAnalyzer.h">
-      <Filter>FifoPlayer</Filter>
+      <Filter>HW %28Flipper/Hollywood%29\FifoPlayer</Filter>
     </ClInclude>
     <ClInclude Include="Src\Movie.h" />
     <ClInclude Include="Src\HW\GCMemcard.h">
@@ -1167,11 +1167,11 @@
     <Filter Include="NetPlay">
       <UniqueIdentifier>{231ceb02-1122-402a-87a8-094a9ed768c2}</UniqueIdentifier>
     </Filter>
-    <Filter Include="FifoPlayer">
-      <UniqueIdentifier>{ca7d56f7-4e84-4d15-9aea-7ae6fa7d6586}</UniqueIdentifier>
-    </Filter>
     <Filter Include="HW %28Flipper/Hollywood%29\GCMemcard">
       <UniqueIdentifier>{3e9e6e83-c1bf-45f9-aeff-231f98f60d29}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HW %28Flipper/Hollywood%29\FifoPlayer">
+      <UniqueIdentifier>{ca7d56f7-4e84-4d15-9aea-7ae6fa7d6586}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

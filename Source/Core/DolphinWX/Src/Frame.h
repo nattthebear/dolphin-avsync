@@ -308,6 +308,7 @@ private:
 	void OnLoadLastState(wxCommandEvent& event);
 	void OnUndoLoadState(wxCommandEvent& event);
 	void OnUndoSaveState(wxCommandEvent& event);
+	void OnToggleUseUndoState(wxCommandEvent& event);
 		
 	void OnFrameSkip(wxCommandEvent& event);
 	void OnFrameStep(wxCommandEvent& event);

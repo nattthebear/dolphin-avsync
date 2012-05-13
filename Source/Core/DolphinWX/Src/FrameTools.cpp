@@ -176,6 +176,9 @@ void CFrame::CreateMenu()
 	loadMenu->Append(IDM_UNDOLOADSTATE, _("Undo Load State") + wxString(wxT("\tF12")));
 	loadMenu->AppendSeparator();
 
+	emulationMenu->AppendCheckItem(IDM_TOGGLE_USEUNDOSTATE, _("Use Undo"));
+	emulationMenu->Check(IDM_TOGGLE_USEUNDOSTATE, SConfig::GetInstance().m_UseUndoState);
+
 	for (int i = 1; i <= 8; i++) {
 		loadMenu->Append(IDM_LOADSLOT1 + i - 1, GetMenuLabel(HK_LOAD_STATE_SLOT_1 + i - 1));
 		saveMenu->Append(IDM_SAVESLOT1 + i - 1, GetMenuLabel(HK_SAVE_STATE_SLOT_1 + i - 1));
@@ -1523,6 +1526,12 @@ void CFrame::OnUndoSaveState(wxCommandEvent& WXUNUSED (event))
 {
 	if (Core::GetState() != Core::CORE_UNINITIALIZED)
 		State::UndoSaveState();
+}
+
+void CFrame::OnToggleUseUndoState(wxCommandEvent& WXUNUSED (event))
+{
+	SConfig::GetInstance().m_UseUndoState = !SConfig::GetInstance().m_UseUndoState;
+	SConfig::GetInstance().SaveSettings();
 }
 
 

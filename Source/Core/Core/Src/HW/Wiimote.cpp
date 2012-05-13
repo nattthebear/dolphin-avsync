@@ -134,11 +134,9 @@ unsigned int GetAttached()
 //
 void DoState(unsigned char **ptr, int mode)
 {
-	// TODO:
-
-	//PointerWrap p(ptr, mode);
-	//for (unsigned int i=0; i<4; ++i)
-	//	((WiimoteEmu::Wiimote*)g_plugin.controllers[i])->DoState(p);
+	PointerWrap p(ptr, mode);
+	for (unsigned int i=0; i<4; ++i)
+		((WiimoteEmu::Wiimote*)g_plugin.controllers[i])->DoState(p);
 }
 
 // ___________________________________________________________________________
