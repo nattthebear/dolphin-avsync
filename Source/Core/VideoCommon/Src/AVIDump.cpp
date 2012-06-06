@@ -226,7 +226,7 @@ void AVIDump::Stop()
 		AddSoundInternal (NULL, 0);
 	// store one copy of the last video frame, CFR case
 	if (ac_Config.m_DumpAudioToAVI && m_streamCompressed)
-		AVIStreamWrite(m_streamCompressed, ++m_frameCount, 1, GetFrame (), m_bitmap.biSizeImage, AVIIF_KEYFRAME, NULL, &m_byteBuffer);
+		AVIStreamWrite(m_streamCompressed, m_frameCount++, 1, GetFrame (), m_bitmap.biSizeImage, AVIIF_KEYFRAME, NULL, &m_byteBuffer);
 
 	CloseFile();
 	m_fileCount = 0;
@@ -400,7 +400,7 @@ void AVIDump::AddFrame(char *data)
 		std::fprintf (timecodes, "%I64u.%06I64u\n", num, den);
 
 
-		AVIStreamWrite(m_streamCompressed, ++m_frameCount, 1, (LPVOID) data, m_bitmap.biSizeImage, AVIIF_KEYFRAME, NULL, &m_byteBuffer);
+		AVIStreamWrite(m_streamCompressed, m_frameCount++, 1, (LPVOID) data, m_bitmap.biSizeImage, AVIIF_KEYFRAME, NULL, &m_byteBuffer);
 		m_totalBytes += m_byteBuffer;
 		// Close the recording if the file is more than 2gb
 		// VfW can't properly save files over 2gb in size, but can keep writing to them up to 4gb.
@@ -455,7 +455,7 @@ void AVIDump::AddFrame(char *data)
 		while (nplay--)
 		{
 			m_frameCountNoSplit++;
-			AVIStreamWrite(m_streamCompressed, ++m_frameCount, 1, GetFrame (), m_bitmap.biSizeImage, AVIIF_KEYFRAME, NULL, &m_byteBuffer);
+			AVIStreamWrite(m_streamCompressed, m_frameCount++, 1, GetFrame (), m_bitmap.biSizeImage, AVIIF_KEYFRAME, NULL, &m_byteBuffer);
 			m_totalBytes += m_byteBuffer;
 			// Close the recording if the file is more than 2gb
 			// VfW can't properly save files over 2gb in size, but can keep writing to them up to 4gb.
