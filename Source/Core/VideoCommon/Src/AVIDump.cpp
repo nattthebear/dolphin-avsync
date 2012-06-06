@@ -239,8 +239,10 @@ void AVIDump::Stop()
 
 void AVIDump::AddSoundBE (const short *data, int nsamp, int rate)
 {
+	/* do these checks in AddSound
 	if (!m_streamSound)
 		return;
+	*/
 
 	static short *buff = NULL;
 	static int nsampf = 0;
@@ -257,8 +259,9 @@ void AVIDump::AddSoundBE (const short *data, int nsamp, int rate)
 	}
 }
 
-
-const int soundinterleave = 48000;
+// interleave is extra big (10s) because the buffer must be able to store potentially quite a bit of data,
+// audio before the video dump starts
+const int soundinterleave = 480000;
 
 void AVIDump::AddSoundInternal (const short *data, int nsamp)
 {
@@ -283,7 +286,11 @@ void AVIDump::AddSoundInternal (const short *data, int nsamp)
 			}
 			if (buffpos == soundinterleave * 2)
 			{
-				AVIStreamWrite (m_streamSound, m_samplesSound, soundinterleave, buff, soundinterleave * 4, 0, NULL, &m_byteBuffer);
+				if (m_streamSound)
+					AVIStreamWrite (m_streamSound, m_samplesSound, soundinterleave, buff, soundinterleave * 4, 0, NULL, &m_byteBuffer);
+				else
+					; // audio stream should have been ready by now, nothing to be done
+				
 				m_totalBytes += m_byteBuffer;
 				m_samplesSound += soundinterleave;
 				buffpos = 0;
@@ -292,7 +299,10 @@ void AVIDump::AddSoundInternal (const short *data, int nsamp)
 	}
 	else if (buffpos)// data = NULL: flush
 	{
-		AVIStreamWrite (m_streamSound, m_samplesSound, buffpos / 2, buff, buffpos * 2, 0, NULL, &m_byteBuffer);
+		if (m_streamSound)
+			AVIStreamWrite (m_streamSound, m_samplesSound, buffpos / 2, buff, buffpos * 2, 0, NULL, &m_byteBuffer);
+		else
+			; // shouldn't happen?
 		m_totalBytes += m_byteBuffer;
 		m_samplesSound += buffpos / 2;
 		buffpos = 0;
@@ -303,7 +313,9 @@ void AVIDump::AddSoundInternal (const short *data, int nsamp)
 
 void AVIDump::AddSound (const short *data, int nsamp, int rate)
 {
-	if (!m_streamSound)
+	/* can't do this.  when dumping sound to avi, the first sound can arrive before the video stream is prepped
+	if (!m_streamSound) */
+	if (!g_ActiveConfig.bDumpFrames)
 		return;
 
 	static short *buff = NULL;
@@ -344,8 +356,6 @@ void AVIDump::AddSound (const short *data, int nsamp, int rate)
 	}
 
 	AddSoundInternal (data, nsamp);
-
-
 
 }
 
