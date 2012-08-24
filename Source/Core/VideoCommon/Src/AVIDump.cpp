@@ -24,6 +24,7 @@
 #include "VideoConfig.h"
 
 #include "..\..\AudioCommon\Src\AudioCommon.h" // for m_DumpAudioToAVI
+#include "..\..\Core\Src\ConfigManager.h" // for EuRGB60
 
 #ifdef _WIN32
 
@@ -51,6 +52,7 @@ int m_samplesSound;
 PAVISTREAM m_stream;
 PAVISTREAM m_streamCompressed;
 PAVISTREAM m_streamSound;
+int framerate;
 
 AVISTREAMINFO m_header;
 AVISTREAMINFO m_soundHeader;
@@ -69,6 +71,11 @@ bool AVIDump::Start(HWND hWnd, int w, int h)
 	m_height = h;
 
 	m_frameCountNoSplit = 0;
+
+	if (SConfig::GetInstance().m_SYSCONF->GetData<u8>("IPL.E60"))
+		framerate = 60; // always 60, for either pal60 or ntsc
+	else
+		framerate = VideoInterface::TargetRefreshRate; // 50 or 60, depending on region
 
 	if (!ac_Config.m_DumpAudioToAVI)
 	{
@@ -437,7 +444,7 @@ void AVIDump::AddFrame(char *data)
 		u64 now = CoreTiming::GetTicks ();
 		fprintf (fff, "%I64u,", now);
 
-		u64 oneCFR = SystemTimers::GetTicksPerSecond () / VideoInterface::TargetRefreshRate;
+		u64 oneCFR = SystemTimers::GetTicksPerSecond () / framerate;
 
 		fprintf (fff, "%I64u,", oneCFR);
 
@@ -504,7 +511,7 @@ bool AVIDump::SetVideoFormat()
 	memset(&m_header, 0, sizeof(m_header));
 	m_header.fccType = streamtypeVIDEO;
 	m_header.dwScale = 1;
-	m_header.dwRate = VideoInterface::TargetRefreshRate;
+	m_header.dwRate = framerate;
 	m_header.dwSuggestedBufferSize  = m_bitmap.biSizeImage;
 
 	return SUCCEEDED(AVIFileCreateStream(m_file, &m_stream, &m_header));
