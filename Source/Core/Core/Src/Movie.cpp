@@ -966,6 +966,8 @@ void PlayController(SPADStatus *PadStatus, int controllerID)
 			PanicAlert("Change the disc to %s", g_discChange.c_str());
 		}
 	}
+	if (g_padState.MC)
+		ExpansionInterface::ChangeDevice(0, EXIDEVICE_MEMORYCARD, 0);
 
 	SetInputDisplayString(g_padState, controllerID);
 

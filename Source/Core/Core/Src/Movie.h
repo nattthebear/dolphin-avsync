@@ -50,7 +50,8 @@ struct ControllerState {
 		DPadLeft:1, DPadRight:1;
 	bool L:1, R:1;								// Binary triggers, 2 bits
 	bool disc:1;								// Checks for disc being changed
-	bool reserved:3;							// Reserved bits used for padding, 4 bits
+	bool MC:1;
+	bool reserved:2;							// Reserved bits used for padding, 4 bits
 
 	u8   TriggerL, TriggerR;					// Triggers, 16 bits
 	u8   AnalogStickX, AnalogStickY;			// Main Stick, 16 bits
