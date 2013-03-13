@@ -677,6 +677,15 @@ void UpdateDSPSlice(int cycles) {
 	}
 }
 
+void AviDumpSilence(int rate)
+{
+	const short blank[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	if (ac_Config.m_DumpAudio)
+		HackDump->dumpsamples (blank, 8, rate);
+	if (ac_Config.m_DumpAudioToAVI)
+		AVIDump::AddSound (blank, 8, rate);
+}
+
 // This happens at 4 khz, since 32 bytes at 4khz = 4 bytes at 32 khz (16bit stereo pcm)
 void UpdateAudioDMA()
 {
@@ -703,7 +712,7 @@ void UpdateAudioDMA()
 	}
 	*/
 	static int oldrate = 32000;
-
+	static int nblock = 0;
 
 	if (g_audioDMA.AudioDMAControl.Enable && g_audioDMA.BlocksLeft)
 	{
@@ -711,30 +720,43 @@ void UpdateAudioDMA()
 		// external audio fifo in the emulator, to be mixed with the disc
 		// streaming output. If that audio queue fills up, we delay the
 		// emulator.
-		
+
+		nblock++;
+
 		g_audioDMA.BlocksLeft--;
 		g_audioDMA.ReadAddress += 32;
 
 		if (g_audioDMA.BlocksLeft == 0)
 		{
 			unsigned numsamples = 8*g_audioDMA.AudioDMAControl.NumBlocks;
+
+			// we're going to write g_audioDMA.AudioDMAControl.NumBlocks of audio.  if more blocks have elapsed, dump some silence first
+			while (nblock > g_audioDMA.AudioDMAControl.NumBlocks)
+			{
+				AviDumpSilence(oldrate);
+				nblock--;
+			}
+			if (nblock < g_audioDMA.AudioDMAControl.NumBlocks)
+			{
+				// what??
+			}
+
 			if (ac_Config.m_DumpAudio)
 				HackDump->dumpsamplesBE (dsp_emulator->DSP_PeekAIBuffer (g_audioDMA.SourceAddress, numsamples), numsamples, oldrate);
 			if (ac_Config.m_DumpAudioToAVI)
 				AVIDump::AddSoundBE (dsp_emulator->DSP_PeekAIBuffer (g_audioDMA.SourceAddress, numsamples), numsamples, oldrate);
+
 			dsp_emulator->DSP_SendAIBuffer(g_audioDMA.SourceAddress, numsamples);
 			GenerateDSPInterrupt(DSP::INT_AID);
 			g_audioDMA.BlocksLeft = g_audioDMA.AudioDMAControl.NumBlocks;
 			g_audioDMA.ReadAddress = g_audioDMA.SourceAddress;
+
+			nblock = 0;
 		}
 	}
 	else
 	{	// numsamples = 8 always
-		const short blank[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-		if (ac_Config.m_DumpAudio)
-			HackDump->dumpsamples (blank, 8, oldrate);
-		if (ac_Config.m_DumpAudioToAVI)
-			AVIDump::AddSound (blank, 8, oldrate);
+		AviDumpSilence(oldrate);
 		// Send silence. Yeah, it's a bit of a waste to sample rate convert
 		// silence.  or hm. Maybe we shouldn't do this :)
 		//dsp_emulator->DSP_SendAIBuffer(0, AudioInterface::GetAIDSampleRate());
